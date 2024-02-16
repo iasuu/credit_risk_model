@@ -1,0 +1,62 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(stringr)
+library(readr)
+```
+
+```{r, warning=FALSE, message=FALSE}
+credit_data <- read_csv(file = "../DADOS/credit_risk_dataset.csv") %>%
+  mutate(
+    across(cb_person_default_on_file, ~ifelse(.x == "Y", 1, 0))
+  )
+```
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+credit_data %>% 
+  ggplot(aes(x = loan_amnt, fill = loan_intent, colour = loan_intent))+
+  geom_density(alpha = 0.4)+
+  scale_x_continuous(labels = scales::dollar_format(scale = 10^-3, prefix = "$", suffix = "K", big.mark = ".", decimal.mark = ","))+
+  labs(x = "Loan Amount", y = "Density", subtitle = "Density Plot for Loan Amount per Loan Intent", fill = "Loan Intent", colour = "Loan Intent")+
+  theme_minimal()+
+  theme(
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    legend.position = "bottom",
+    legend.direction = "horizontal"
+  )
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+```
+
+### Chart C
+
+```{r}
+
+```
+
