@@ -1,9 +1,15 @@
 ---
-title: "Untitled"
+title: "Credit Risk Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
+    navbar:
+      - { icon: "fa-linkedin", href: "https://www.linkedin.com/in/guilherme-yukio-iasunaga-2862601b6/" , align: right}
+      - { icon: "fa-github", href: "https://github.com/iasuu", align: right }
+    source_code: embed
+    runtime: shiny
+    theme: united
 ---
 
 ```{r setup, include=FALSE}
@@ -13,7 +19,9 @@ library(tidyverse)
 library(janitor)
 library(lubridate)
 library(stringr)
+library(ggridges)
 library(readr)
+library(shiny)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
@@ -26,23 +34,24 @@ credit_data <- read_csv(file = "../DADOS/credit_risk_dataset.csv") %>%
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Density Plot for Loan Amount
 
 ```{r}
 credit_data %>% 
-  ggplot(aes(x = loan_amnt, fill = loan_intent, colour = loan_intent))+
-  geom_density(alpha = 0.4)+
+  mutate(default_label = ifelse(loan_status == 1, "Default", "No Default")) %>%
+  ggplot(aes(y = loan_intent, x = loan_amnt, fill = loan_intent, colour = loan_intent))+
+  geom_density_ridges(alpha = 0.4, quantile_lines = TRUE, quantiles = 2, color = "black")+
   scale_x_continuous(labels = scales::dollar_format(scale = 10^-3, prefix = "$", suffix = "K", big.mark = ".", decimal.mark = ","))+
-  labs(x = "Loan Amount", y = "Density", subtitle = "Density Plot for Loan Amount per Loan Intent", fill = "Loan Intent", colour = "Loan Intent")+
-  theme_minimal()+
+  labs(x = "Loan Amount", y = "Loan Intent", title = "Density Plot for Loan Amount per Loan Intent", fill = "Loan Intent", colour = "Loan Intent")+
+  theme_bw(base_size = 9)+
   theme(
-    axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank(),
-    legend.position = "bottom",
-    legend.direction = "horizontal"
-  )
+    legend.position = "right",
+    legend.direction = "vertical"
+  )+
+  facet_wrap(facets = ~default_label, nrow = 2, ncol = 1)
 ```
 
 Column {data-width=350}
