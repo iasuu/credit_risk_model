@@ -2,7 +2,7 @@
 title: "Credit Risk Dashboard"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: row
     vertical_layout: fill
     navbar:
       - { icon: "fa-linkedin", href: "https://www.linkedin.com/in/guilherme-yukio-iasunaga-2862601b6/" , align: right}
@@ -22,6 +22,7 @@ library(stringr)
 library(ggridges)
 library(readr)
 library(shiny)
+library(plotly)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
@@ -31,41 +32,135 @@ credit_data <- read_csv(file = "../DADOS/credit_risk_dataset.csv") %>%
   )
 ```
 
-Column {data-width=650}
+Loan Intent 
+=======================================================================
+
+Row {data-height = 100}
 -----------------------------------------------------------------------
 
-### Density Plot for Loan Amount
+### Number of loans {.value-box}
 
 ```{r}
-credit_data %>% 
-  mutate(default_label = ifelse(loan_status == 1, "Default", "No Default")) %>%
-  ggplot(aes(y = loan_intent, x = loan_amnt, fill = loan_intent, colour = loan_intent))+
-  geom_density_ridges(alpha = 0.4, quantile_lines = TRUE, quantiles = 2, color = "black")+
-  scale_x_continuous(labels = scales::dollar_format(scale = 10^-3, prefix = "$", suffix = "K", big.mark = ".", decimal.mark = ","))+
-  labs(x = "Loan Amount", y = "Loan Intent", title = "Density Plot for Loan Amount per Loan Intent", fill = "Loan Intent", colour = "Loan Intent")+
+renderValueBox({
+  quantity <- credit_data %>% nrow()
+  
+  valueBox(
+    value = quantity,
+    icon = "fa-users",
+    color = "primary"
+  )
+})
+```
+
+### Loan Amount {.value-box}
+
+```{r}
+renderValueBox({
+  amount <- credit_data %>% select(loan_amnt) %>% sum()
+  
+  valueBox(
+    value = scales::dollar(amount, scale = 10^-6, prefix = "$", suffix = "MM"),
+    icon = "fa-money",
+    color = "#76EEC6"
+  )
+})
+```
+
+### Loan Default in Quantity {.value-box}
+
+```{r}
+renderValueBox({
+  default_qty <- credit_data %>% select(loan_status) %>% sum()
+  
+  valueBox(
+    value = default_qty,
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+### Loan Default in Percentage {.value-box}
+
+```{r}
+renderValueBox({
+  default_perc <- (credit_data %>% select(loan_status) %>% sum())/(credit_data %>% nrow())
+  
+  valueBox(
+    value = scales::percent(default_perc, accuracy = 0.01),
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+Row {data-width=650}
+-----------------------------------------------------------------------
+
+### Barplot for default quantity
+
+```{r}
+# renderPlotly({
+#   barplot1 <-
+  credit_data %>% 
+  group_by(loan_intent) %>%
+  summarise(
+    perc_default = sum(loan_status)/n()
+  ) %>%
+  ggplot(aes(x = loan_intent, y = perc_default, fill = loan_intent))+
+  geom_col()+
+  scale_y_continuous(
+    name = "% Default",
+    labels = scales::percent
+  )+
+  geom_text(
+    aes(y = perc_default, label = scales::percent(perc_default, accuracy = 0.1)),
+    position = position_stack(vjust = 1.02)
+  )+
+  labs(title = "% Default by Loan Intent", fill = "Loan Intent", x = "Loan Intent")+
   theme_bw(base_size = 9)+
   theme(
-    axis.ticks.y = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    legend.position = "right",
+    legend.direction = "vertical"
+  )
+# 
+# ggplotly(barplot1)
+# })
+```
+
+### Boxplot Plot for Loan Amount {.tabset}
+
+```{r}
+# renderPlotly({
+#   boxplot1 <- 
+    credit_data %>% 
+  mutate(default_label = ifelse(loan_status == 1, "Default", "No Default")) %>%
+  ggplot(aes(x = loan_intent, y = loan_amnt, color = loan_intent))+
+  geom_boxplot()+
+  scale_y_continuous(labels = scales::dollar_format(scale = 10^-3, prefix = "$", suffix = "K", big.mark = ".", decimal.mark = ","))+
+  labs(x = "Loan Intent", y = "Loan Amount", title = "Loan Amount per Loan Intent", fill = "Loan Intent", colour = "Loan Intent")+
+  theme_bw(base_size = 9)+
+  theme(
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank(),
     panel.grid.major.y = element_blank(),
-    panel.grid.minor.y = element_blank(),
     legend.position = "right",
     legend.direction = "vertical"
   )+
-  facet_wrap(facets = ~default_label, nrow = 2, ncol = 1)
+  facet_wrap(vars(default_label), nrow = 1, ncol = 2)
+  
+#   ggplotly(boxplot1)
+# })
 ```
 
-Column {data-width=350}
------------------------------------------------------------------------
-
-### Chart B
+### Test for Default Proportion by Loan Intent {.tabset}
 
 ```{r}
-
+pairwise.prop.test()
 ```
 
-### Chart C
 
-```{r}
-
-```
-
+Loan Intent 
+=======================================================================
