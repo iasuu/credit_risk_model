@@ -26,19 +26,19 @@ library(plotly)
 ```
 
 ```{r, warning=FALSE, message=FALSE}
-credit_data <- read_csv(file = "../DADOS/credit_risk_dataset.csv") %>%
+credit_data <- read_csv(file = "~/credit_risk_model/DADOS/credit_risk_dataset.csv") %>%
   mutate(
     across(cb_person_default_on_file, ~ifelse(.x == "Y", 1, 0))
   )
 ```
 
-Loan Intent 
+Proportion by Loan Intent {data-navmenu="Loan Intent"}
 =======================================================================
 
-Row {data-height = 100}
+Row
 -----------------------------------------------------------------------
 
-### Number of loans {.value-box}
+### Number of loans 
 
 ```{r}
 renderValueBox({
@@ -52,7 +52,7 @@ renderValueBox({
 })
 ```
 
-### Loan Amount {.value-box}
+### Loan Amount
 
 ```{r}
 renderValueBox({
@@ -66,7 +66,7 @@ renderValueBox({
 })
 ```
 
-### Loan Default in Quantity {.value-box}
+### Loan Default in Quantity
 
 ```{r}
 renderValueBox({
@@ -80,7 +80,7 @@ renderValueBox({
 })
 ```
 
-### Loan Default in Percentage {.value-box}
+### Loan Default in Percentage
 
 ```{r}
 renderValueBox({
@@ -94,10 +94,10 @@ renderValueBox({
 })
 ```
 
-Row {data-width=650}
+Row {data-height=1000}
 -----------------------------------------------------------------------
 
-### Barplot for default quantity
+### Barplot for default by Loan Intent
 
 ```{r}
 # renderPlotly({
@@ -130,7 +130,90 @@ Row {data-width=650}
 # })
 ```
 
-### Boxplot Plot for Loan Amount {.tabset}
+### Test for Default Proportion by Loan Intent
+
+```{r}
+default_count <- credit_data %>%
+  group_by(loan_intent) %>%
+  summarise(n_default = sum(loan_status))
+
+count <- credit_data %>%
+  group_by(loan_intent) %>%
+  summarise(n = n())
+
+prop.test(default_count$n_default, count$n)
+```
+
+```{r}
+pairwise.prop.test(x = default_count$n_default, n = count$n, p.adjust.method = "bonferroni")
+```
+
+Loan Amount by Loan Intent {data-navmenu="Loan Intent"}
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Number of loans 
+
+```{r}
+renderValueBox({
+  quantity <- credit_data %>% nrow()
+  
+  valueBox(
+    value = quantity,
+    icon = "fa-users",
+    color = "primary"
+  )
+})
+```
+
+### Loan Amount
+
+```{r}
+renderValueBox({
+  amount <- credit_data %>% select(loan_amnt) %>% sum()
+  
+  valueBox(
+    value = scales::dollar(amount, scale = 10^-6, prefix = "$", suffix = "MM"),
+    icon = "fa-money",
+    color = "#76EEC6"
+  )
+})
+```
+
+### Loan Default in Quantity
+
+```{r}
+renderValueBox({
+  default_qty <- credit_data %>% select(loan_status) %>% sum()
+  
+  valueBox(
+    value = default_qty,
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+### Loan Default in Percentage
+
+```{r}
+renderValueBox({
+  default_perc <- (credit_data %>% select(loan_status) %>% sum())/(credit_data %>% nrow())
+  
+  valueBox(
+    value = scales::percent(default_perc, accuracy = 0.01),
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+Row {data-height=1000}
+-----------------------------------------------------------------------
+
+### Boxplot Plot for Loan Amount
 
 ```{r}
 # renderPlotly({
@@ -155,12 +238,217 @@ Row {data-width=650}
 # })
 ```
 
-### Test for Default Proportion by Loan Intent {.tabset}
+### Test for Loan Amount Mean by Loan Intent
 
 ```{r}
-pairwise.prop.test()
+TukeyHSD(stats::aov(formula = loan_amnt ~ as.factor(loan_status)+loan_intent, data = credit_data), p.adjust.method = "")
+```
+
+Proportion by Default on File {data-navmenu="Default on File"}
+==============================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Number of loans 
+
+```{r}
+renderValueBox({
+  quantity <- credit_data %>% nrow()
+  
+  valueBox(
+    value = quantity,
+    icon = "fa-users",
+    color = "primary"
+  )
+})
+```
+
+### Loan Amount
+
+```{r}
+renderValueBox({
+  amount <- credit_data %>% select(loan_amnt) %>% sum()
+  
+  valueBox(
+    value = scales::dollar(amount, scale = 10^-6, prefix = "$", suffix = "MM"),
+    icon = "fa-money",
+    color = "#76EEC6"
+  )
+})
+```
+
+### Loan Default in Quantity
+
+```{r}
+renderValueBox({
+  default_qty <- credit_data %>% select(loan_status) %>% sum()
+  
+  valueBox(
+    value = default_qty,
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+### Loan Default in Percentage
+
+```{r}
+renderValueBox({
+  default_perc <- (credit_data %>% select(loan_status) %>% sum())/(credit_data %>% nrow())
+  
+  valueBox(
+    value = scales::percent(default_perc, accuracy = 0.01),
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+Row
+------------------------------------------------------------
+
+### Barplot for Default by Default on File
+
+```{r}
+credit_data %>%
+  group_by(cb_person_default_on_file) %>%
+  summarise(
+    perc_default = sum(loan_status)/n()
+  ) %>%
+  ggplot(aes(x = as.factor(cb_person_default_on_file), y = perc_default, fill = as.factor(cb_person_default_on_file)))+
+  geom_col()+
+  scale_y_continuous(
+    name = "% Default",
+    labels = scales::percent
+  )+
+  geom_text(
+    aes(y = perc_default, label = scales::percent(perc_default, accuracy = 0.1)),
+    position = position_nudge(y = 0.02)
+  )+
+  theme_bw(base_size = 9)+
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "right",
+    legend.direction = "vertical"
+  )+
+  labs(
+    x = "Default on File",
+    fill = "Default on File",
+    title = "Proportion of Default for Default on File")
+```
+
+### Test for Proportion of Default by Default on file
+
+```{r}
+default_n_file <- credit_data %>%
+  group_by(cb_person_default_on_file) %>%
+  summarise(default_n = sum(loan_status))
+
+n_file <- credit_data %>%
+  group_by(cb_person_default_on_file) %>%
+  summarise(n = n())
+
+prop.test(x = default_n_file$default_n, n_file$n)
+```
+
+Loan Amount by Default on File {data-navmenu="Default on File"}
+==============================================================
+
+Row
+-----------------------------------------------------------------------
+
+### Number of loans 
+
+```{r}
+renderValueBox({
+  quantity <- credit_data %>% nrow()
+  
+  valueBox(
+    value = quantity,
+    icon = "fa-users",
+    color = "primary"
+  )
+})
+```
+
+### Loan Amount
+
+```{r}
+renderValueBox({
+  amount <- credit_data %>% select(loan_amnt) %>% sum()
+  
+  valueBox(
+    value = scales::dollar(amount, scale = 10^-6, prefix = "$", suffix = "MM"),
+    icon = "fa-money",
+    color = "#76EEC6"
+  )
+})
+```
+
+### Loan Default in Quantity
+
+```{r}
+renderValueBox({
+  default_qty <- credit_data %>% select(loan_status) %>% sum()
+  
+  valueBox(
+    value = default_qty,
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+### Loan Default in Percentage
+
+```{r}
+renderValueBox({
+  default_perc <- (credit_data %>% select(loan_status) %>% sum())/(credit_data %>% nrow())
+  
+  valueBox(
+    value = scales::percent(default_perc, accuracy = 0.01),
+    icon = "fa-warning",
+    color = "#FF6A6A"
+  )
+})
+```
+
+Row
+------------------------------------------------------------
+
+### Boxplot for Loan Amount by Default on File
+
+```{r}
+credit_data %>%
+  mutate(
+    default_label = ifelse(loan_status == 1, "Default", "No Default")
+  ) %>%
+  ggplot(aes(x = as.factor(cb_person_default_on_file), y = loan_amnt, color = as.factor(cb_person_default_on_file)))+
+  geom_boxplot()+
+  scale_y_continuous(
+    name = "Loan Amount",
+    labels = scales::dollar_format(prefix = "$", suffix = "K", scale = 10^-3)
+  )+
+  theme_bw(base_size = 9)+
+  theme(
+    axis.text.x = element_blank(),
+    legend.position = "right",
+    legend.direction = "vertical"
+  )+
+  labs(
+    x = "Default on File",
+    color = "Default on File",
+    title = "Loan Amount by Default on File"
+  )+
+  facet_wrap(facets = ~default_label, ncol = 2, nrow = 1)
+```
+
+### Tukey Test for Loan Amoun Mean Comparison
+
+```{r}
+TukeyHSD(stats::aov(data = credit_data, formula = loan_amnt ~ as.factor(cb_person_default_on_file)*as.factor(loan_status)))
 ```
 
 
-Loan Intent 
-=======================================================================
